@@ -20,6 +20,7 @@ export default function Navbar() {
         <Link to="/complaints">Complaints</Link>
         {user.role === 'Customer' && <Link to="/new-complaint">New Complaint</Link>}
         {user.role === 'Admin' && <Link to="/users">Users</Link>}
+        {(user.role === 'Admin' || user.role === 'Supervisor') && <Link to="/analytics">Analytics</Link>}
         <span className="user-info">{user.name} ({user.role})</span>
         <button onClick={handleLogout}>Logout</button>
       </div>
