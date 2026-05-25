@@ -15,3 +15,6 @@ dist/
 # Misc
 *.log
 .vscode/
+
+# Nested project copy (duplicate folder, not part of tracked source)
+AFDE_May6_Salma_CCRTS/
