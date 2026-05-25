@@ -7,6 +7,7 @@ import ComplaintsList from './pages/ComplaintsList'
 import ComplaintDetail from './pages/ComplaintDetail'
 import NewComplaint from './pages/NewComplaint'
 import Users from './pages/Users'
+import Analytics from './pages/Analytics'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -32,6 +33,7 @@ export default function App() {
       <Route path="/complaints/:id" element={<ProtectedRoute><ComplaintDetail /></ProtectedRoute>} />
       <Route path="/new-complaint" element={<ProtectedRoute><NewComplaint /></ProtectedRoute>} />
       <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+      <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

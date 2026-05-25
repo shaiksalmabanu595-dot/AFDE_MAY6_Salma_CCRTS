@@ -326,3 +326,121 @@ Screenshots of the working application are available in the [`screenshots/`](scr
 
 This is an academic capstone project submitted by **Salma** for the **AFDE_May6** batch.
 All code in this repository was written by the participant. Any third-party libraries used are listed in `requirements.txt` and `package.json` with their open-source licenses.
+
+---
+
+## Phase 2 — ETL Pipeline & Analytics Dashboard
+
+Phase 2 extends the Phase 1 application with an **ETL (Extract-Transform-Load)
+pipeline** and an **analytics dashboard** powered by it.
+
+### What's new
+
+- **ETL pipeline** in `backend/etl/` — reads a CSV of ~10,400 complaints,
+  cleans it, derives analytics columns, and loads it into reporting tables
+- **5 analytics tables** in the same SQLite DB (`analytics_complaints`,
+  `sla_breach_summary`, `category_summary`, `agent_performance`,
+  `monthly_trends`) + an `etl_runs` audit log
+- **6 new analytics API endpoints** under `/api/analytics/*`
+- **`/analytics` page** in the React frontend with charts (line, bar, pie)
+  and aggregated tables, restricted to Admin/Supervisor
+- **Dataset** in `datasets/complaints_sample.csv` (10,400 rows, intentionally
+  messy so the Transform step has meaningful work)
+
+### ETL workflow
+
+```
+   datasets/complaints_sample.csv  (10,400 rows, ~3,860 dirty cells)
+                  │
+                  ▼
+   ┌──────────────────────────┐
+   │   1. EXTRACT (pandas)    │   read CSV + validate schema
+   └─────────────┬────────────┘
+                 ▼
+   ┌──────────────────────────┐
+   │   2. TRANSFORM           │   ~200 duplicates removed
+   │                          │   ~322 priority casings normalized
+   │                          │   ~3,860 whitespace cells fixed
+   │                          │   ~263 negative resolutions nulled
+   │                          │   ~95 invalid feedback ratings nulled
+   │                          │   + derived columns (year, month,
+   │                          │     resolution_bucket, is_resolved)
+   └─────────────┬────────────┘
+                 ▼
+   ┌──────────────────────────┐
+   │   3. LOAD                │   bulk insert into analytics_complaints
+   │                          │   pre-aggregate into 4 summary tables
+   │                          │   log run in etl_runs audit table
+   └──────────────────────────┘
+```
+
+End result: 10,400 raw rows → **10,200 clean rows** loaded in ~0.7 seconds.
+
+### How to run the ETL
+
+```bash
+# From project root, with the backend venv active
+source backend/venv/Scripts/activate   # Git Bash on Windows
+
+# Run the full pipeline
+python -m backend.etl.run_etl
+
+# Or with custom CSV / DB paths
+python -m backend.etl.run_etl --csv mydata.csv --db backend/ccrts.db
+```
+
+Expected output (final lines):
+
+```
+ETL run #1 complete in 0.67s
+  Rows extracted:      10400
+  Rows loaded:         10200
+  Duplicates removed:  200
+  Whitespace fixed:    3860 cells
+  Priorities normalized: 322
+  Negative resolutions nulled: 263
+  Invalid feedback nulled: 95
+```
+
+### Analytics API endpoints
+
+All endpoints require **Admin** or **Supervisor** JWT token.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/analytics/overview` | High-level KPIs (totals, breach rate, avg resolution) |
+| `GET /api/analytics/categories` | Per-category counts, avg resolution, ratings, breach rate |
+| `GET /api/analytics/sla` | SLA breach rate by (priority, category) |
+| `GET /api/analytics/agents` | Per-agent performance metrics |
+| `GET /api/analytics/trends` | Monthly complaint volume + resolution + breaches |
+| `GET /api/analytics/etl-runs` | Recent ETL run history (audit log) |
+
+### Analytics dashboard
+
+After running the ETL and starting both servers:
+
+1. Open http://localhost:5173
+2. Log in as **Admin** (`admin@ccrts.com / admin123`)
+3. Click **Analytics** in the navbar
+
+You'll see:
+- 8 KPI cards (total complaints, resolved, breaches, avg resolution, etc.)
+- Monthly trends line chart (volume, resolved, breaches)
+- Category breakdown — horizontal bar chart + pie chart
+- SLA breach rate heatmap-style table (color-coded by severity)
+- Agent performance leaderboard (sorted by resolution rate)
+- Recent ETL runs audit table
+
+### Phase 2 documentation
+
+- `docs/ETL.md` — full pipeline technical reference
+- `INTEGRATION_GUIDE.md` — step-by-step setup if integrating into a fresh repo
+
+### Phase 2 deliverables checklist
+
+- ✅ ETL scripts using pandas (`backend/etl/`)
+- ✅ Reporting tables (5 analytics tables + audit log)
+- ✅ Analytics dashboards (frontend `/analytics` page)
+- ✅ Updated APIs (`/api/analytics/*`)
+- ✅ Dataset with ≥200 records (`datasets/complaints_sample.csv`, 10,400 rows)
+- ✅ README explaining ETL workflow (this section)
