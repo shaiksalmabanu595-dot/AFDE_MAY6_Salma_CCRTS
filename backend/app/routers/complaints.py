@@ -36,10 +36,15 @@ def _is_sla_breached(complaint: Complaint) -> bool:
     return datetime.now(timezone.utc) > deadline
 
 
-def _to_out(c: Complaint, db: Session) -> dict:
-    customer = db.query(User).filter(User.user_id == c.customer_id).first()
-    agent = db.query(User).filter(User.user_id == c.assigned_to).first() if c.assigned_to else None
-    category = db.query(Category).filter(Category.category_id == c.category_id).first()
+def _to_out(c: Complaint, db: Session, user_cache: dict = None, cat_cache: dict = None) -> dict:
+    if user_cache is None:
+        customer = db.query(User).filter(User.user_id == c.customer_id).first()
+        agent = db.query(User).filter(User.user_id == c.assigned_to).first() if c.assigned_to else None
+        category = db.query(Category).filter(Category.category_id == c.category_id).first()
+    else:
+        customer = user_cache.get(c.customer_id)
+        agent = user_cache.get(c.assigned_to) if c.assigned_to else None
+        category = cat_cache.get(c.category_id) if cat_cache else None
     return {
         "complaint_id": c.complaint_id,
         "complaint_code": c.complaint_code,
@@ -108,7 +113,7 @@ def create_complaint(
     return _to_out(complaint, db)
 
 
-# ---------- List with filters / search ----------
+# ---------- List with filters / search / pagination ----------
 @router.get("/", response_model=List[ComplaintOut])
 def list_complaints(
     db: Session = Depends(get_db),
@@ -119,6 +124,8 @@ def list_complaints(
     search: Optional[str] = Query(None, description="Search in title/description/code"),
     assigned_to_me: bool = Query(False),
     my_complaints: bool = Query(False),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
 ):
     role = _get_role_name(current, db)
     q = db.query(Complaint)
@@ -146,8 +153,15 @@ def list_complaints(
             Complaint.complaint_code.ilike(like),
         ))
 
-    complaints = q.order_by(Complaint.created_at.desc()).all()
-    return [_to_out(c, db) for c in complaints]
+    complaints = q.order_by(Complaint.created_at.desc()).offset(offset).limit(limit).all()
+
+    # Batch-load users and categories to avoid N+1 queries
+    user_ids = {c.customer_id for c in complaints} | {c.assigned_to for c in complaints if c.assigned_to}
+    cat_ids = {c.category_id for c in complaints}
+    user_cache = {u.user_id: u for u in db.query(User).filter(User.user_id.in_(user_ids)).all()} if user_ids else {}
+    cat_cache = {c.category_id: c for c in db.query(Category).filter(Category.category_id.in_(cat_ids)).all()} if cat_ids else {}
+
+    return [_to_out(c, db, user_cache, cat_cache) for c in complaints]
 
 
 # ---------- Get one ----------

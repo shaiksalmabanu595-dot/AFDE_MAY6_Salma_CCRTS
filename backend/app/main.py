@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import engine, Base, SessionLocal
 from app.models import Role, Category, User
 from app.utils.auth import hash_password
-from app.routers import auth, users, categories, complaints, feedback, dashboard, analytics
+from app.routers import auth, users, categories, complaints, feedback, dashboard, analytics, admin
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -89,3 +89,4 @@ app.include_router(complaints.router)
 app.include_router(feedback.router)
 app.include_router(dashboard.router)
 app.include_router(analytics.router)
+app.include_router(admin.router)
