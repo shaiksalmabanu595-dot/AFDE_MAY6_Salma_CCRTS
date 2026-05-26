@@ -30,6 +30,27 @@ Place screenshots of the running application here. Per the capstone submission g
 5. For Postman screenshots, import a collection or build requests against `http://127.0.0.1:8000`
 6. Save all `.png` files into this folder
 
+## ETL Pipeline Screenshots (Phase 2)
+
+These are generated automatically from the live database after running the ETL pipeline.
+
+- `etl_pipeline_run.png` — Full ETL run log: Extract → Transform → Load stages with row counts and data-quality stats
+- `etl_sanity_check.png` — Post-run validation output confirming all 6 analytics tables populated and ETL status = SUCCESS
+- `etl_category_summary.png` — `category_summary` table: 10 complaint categories with resolution rate, avg hours, SLA breach %
+- `etl_agent_performance.png` — `agent_performance` table: 10 agents with handled count, resolution rate, breach rate, avg rating
+- `etl_monthly_trends.png` — `monthly_trends` bar chart: total complaints, resolved, and SLA breaches across 13 months (May 2025 – May 2026)
+- `etl_sla_breach_summary.png` — `sla_breach_summary` table: Critical-priority SLA breach rates by category
+
+### Regenerating ETL Screenshots
+
+```bash
+# 1. Run the ETL pipeline
+cd backend && python etl/run_etl.py
+
+# 2. Verify results
+python scripts/sanity_check.py
+```
+
 ## Notes
 - Capture at 1280×800 or larger
 - Make sure no personal/sensitive data is visible
